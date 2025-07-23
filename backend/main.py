@@ -2,51 +2,57 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
 import joblib
-import os
+from preprocess import preprocess_sleman, preprocess_kapanewon
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
 
 # Load models
-model_kabupaten = joblib.load("model_kabupaten.pkl")
-model_kecamatan = joblib.load("model_kecamatan.pkl")
+sleman_model = joblib.load('models/xgb_model_sleman.pkl')
+kapanewon_model = joblib.load('models/xgb_model_kapanewon.pkl')
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
+# Feature list
+sleman_features = [
+    'temperature_min_celsius', 'humidity_avg_percentage', 'precipitation_mm',
+    'case_lag1', 'case_lag2', 'case_lag3',
+    'temperature_min_celsius_lag1', 'temperature_min_celsius_lag2', 'temperature_min_celsius_lag3',
+    'humidity_avg_percentage_lag1', 'humidity_avg_percentage_lag2', 'humidity_avg_percentage_lag3',
+    'precipitation_mm_lag1', 'precipitation_mm_lag2', 'precipitation_mm_lag3',
+    'case_rolling3', 
+    'temperature_min_celsius_rolling3',
+    'humidity_avg_percentage_rolling3', 'precipitation_mm_rolling3',
+    'month', 'season'
+]
 
-    csv_file = request.files['file']
-    model_type = request.form.get('model_type', 'kabupaten')
+kapanewon_features = sleman_features + ['sub_district_encoded']
 
-    try:
-        df = pd.read_csv(csv_file)
+@app.route('/predict/sleman', methods=['POST'])
+def predict_sleman():
+    file = request.files['file']
+    df = pd.read_csv(file)
+    df = preprocess_sleman(df)
+    
+    print("After preprocessing:", df.shape)
+    print("Kolom tersedia:", df.columns.tolist())
 
-        # Validasi kolom
-        required_columns = ['date', 'temperature_avg_celsius', 'humidity_avg_percentage', 'precipitation_mm']
-        if model_type == 'kecamatan':
-            required_columns.insert(1, 'sub_district')  # Tambahkan sub_district
+    if df.empty:
+        print("⚠️ Data kosong setelah preprocessing")
+        return jsonify([])
 
-        if not all(col in df.columns for col in required_columns):
-            return jsonify({"error": "Missing required columns"}), 400
+    X = df[sleman_features]
+    df['predicted_cases'] = sleman_model.predict(X)
+    result = df[['date', 'temperature_min_celsius', 'humidity_avg_percentage', 'precipitation_mm', 'predicted_cases']].to_dict(orient='records')
+    return jsonify(result)
 
-        # Pilih model
-        model = model_kabupaten if model_type == 'kabupaten' else model_kecamatan
-
-        # Ambil fitur yang sesuai untuk prediksi
-        features = df[['temperature_avg_celsius', 'humidity_avg_percentage', 'precipitation_mm']]
-        prediction = model.predict(features)
-
-        # Gabungkan hasil prediksi
-        df['predicted_cases'] = prediction
-
-        # Pilih kolom yang akan dikirim kembali ke frontend
-        response_columns = required_columns + ['predicted_cases']
-        result = df[response_columns].to_dict(orient='records')
-
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+@app.route('/predict/kapanewon', methods=['POST'])
+def predict_kapanewon():
+    file = request.files['file']
+    df = pd.read_csv(file)
+    df = preprocess_kapanewon(df)
+    X = df[kapanewon_features]
+    df['predicted_cases'] = kapanewon_model.predict(X)
+    result = df[['date', 'sub_district', 'temperature_min_celsius', 'humidity_avg_percentage', 'precipitation_mm', 'predicted_cases']].to_dict(orient='records')
+    return jsonify(result)
 
 if __name__ == '__main__':
     app.run(debug=True)

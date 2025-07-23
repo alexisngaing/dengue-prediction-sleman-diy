@@ -15,8 +15,8 @@
         class="border px-3 py-2 rounded"
       >
         <option disabled value="">-- Pilih Jenis Prediksi --</option>
-        <option value="kabupaten">Kabupaten</option>
-        <option value="kecamatan">Per Kecamatan</option>
+        <option value="sleman">Kabupaten Sleman</option>
+        <option value="kapanewon">Per Kapanewon</option>
       </select>
     </div>
 
@@ -38,11 +38,11 @@
         <thead class="bg-gray-200">
           <tr>
             <!-- Tampilkan kolom sub_district jika model kecamatan -->
-            <th v-if="modelType === 'kecamatan'" class="border px-4 py-2">
-              Kecamatan
+            <th v-if="modelType === 'kapanewon'" class="border px-4 py-2">
+              Kapanewon
             </th>
             <th class="border px-4 py-2">Tanggal</th>
-            <th class="border px-4 py-2">Suhu Rata-rata (°C)</th>
+            <th class="border px-4 py-2">Suhu Minimum (°C)</th>
             <th class="border px-4 py-2">Kelembapan (%)</th>
             <th class="border px-4 py-2">Curah Hujan (mm)</th>
             <th class="border px-4 py-2">Prediksi Kasus</th>
@@ -50,11 +50,11 @@
         </thead>
         <tbody>
           <tr v-for="(row, index) in predictions" :key="index">
-            <td v-if="modelType === 'kecamatan'" class="border px-4 py-2">
+            <td v-if="modelType === 'kapanewon'" class="border px-4 py-2">
               {{ row.sub_district }}
             </td>
             <td class="border px-4 py-2">{{ row.date }}</td>
-            <td class="border px-4 py-2">{{ row.temperature_avg_celsius }}</td>
+            <td class="border px-4 py-2">{{ row.temperature_min_celsius }}</td>
             <td class="border px-4 py-2">{{ row.humidity_avg_percentage }}</td>
             <td class="border px-4 py-2">{{ row.precipitation_mm }}</td>
             <td class="border px-4 py-2 font-bold text-red-600">
@@ -84,27 +84,37 @@ export default {
       this.csvFile = event.target.files[0]
     },
     async submitCsv() {
-      if (!this.csvFile) {
-        alert('Please upload a CSV file.')
+      if (!this.csvFile || !this.modelType) {
+        alert('Mohon pilih jenis prediksi dan unggah file CSV.')
         return
       }
 
       const formData = new FormData()
       formData.append('file', this.csvFile)
-      formData.append('model_type', this.modelType)
+
+      // Tentukan endpoint berdasarkan jenis model
+      let endpoint = ''
+      if (this.modelType === 'sleman') {
+        endpoint = 'http://localhost:5000/predict/sleman'
+      } else if (this.modelType === 'kapanewon') {
+        endpoint = 'http://localhost:5000/predict/kapanewon'
+      }
 
       try {
-        const response = await axios.post('/api/predict', formData, {
+        const response = await axios.post(endpoint, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
         })
+        console.log('Predictions from backend:', response.data)
+
         this.predictions = response.data
       } catch (error) {
-        console.error('Error uploading file:', error)
-        alert('Failed to process the file. Please try again.')
+        console.error('Gagal memproses file:', error)
+        alert('Terjadi kesalahan saat memproses file.')
       }
-    },
+    }
+
   },
   components: {},
 }
