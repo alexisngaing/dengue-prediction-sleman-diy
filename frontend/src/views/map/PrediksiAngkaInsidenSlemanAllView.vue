@@ -12,22 +12,52 @@ export default {
   name: 'PrediksiAngkaInsidenSlemanAll',
   data() {
     return {
-      selectedMonth: 'Agustus', // Set Agustus as default
+      selectedMonth: 'Januari 2025', // Set Agustus as default
       map: null,
       centerMarker: null,
-      monthValues: {
-        Agustus: '6.5',
-        September: '5.0',
-        Oktober: '2.3',
-      },
+      monthValues: {},
       geoJsonLayer: null,
     }
   },
   mounted() {
-    this.initMap()
-    this.loadGeoJSON()
+    this.fetchPrediction().then(() => {
+      this.initMap()
+      this.loadGeoJSON()
+      // this.createDropdownControl() // Pindahkan ke sini
+  })
   },
   methods: {
+    async fetchPrediction() {
+      try {
+        const response = await fetch('http://localhost:5000/all-predictions')
+        const data = await response.json()
+
+        this.allPredictions = data
+
+        data.forEach(item => {
+          const month = this.formatMonthToIndonesian(item.date)
+          this.monthValues[month] = parseFloat(item.incidence_rate).toFixed(2)
+        })
+
+        // Pilih bulan terbaru
+        const latest = data[data.length - 1]
+        this.selectedMonth = this.formatMonthToIndonesian(latest.date)
+
+      } catch (err) {
+        console.log('monthValues:', this.monthValues)
+        console.error('Gagal mengambil prediksi:', err)
+      }
+    },
+
+    formatMonthToIndonesian(dateStr) {
+      const bulanIndo = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ]
+      const date = new Date(dateStr)
+      return `${bulanIndo[date.getMonth()]} ${date.getFullYear()}`
+    },
+
     initMap() {
       this.map = L.map('map3').setView([-7.6896, 110.3831], 10.5)
 
@@ -52,15 +82,18 @@ export default {
           L.DomEvent.disableClickPropagation(container)
 
           const select = L.DomUtil.create('select', 'month-select', container)
-          select.innerHTML = `
-            <option value="">Pilih Bulan</option>
-            <option value="Agustus" selected>Agustus 2025</option>
-            <option value="September">September 2025</option>
-            <option value="Oktober">Oktober 2025</option>
-          `
 
-          // Set the selected value to Agustus
-          select.value = 'Agustus'
+          let optionsHtml = `<option value="">Pilih Bulan</option>`
+         
+          const filteredMonths = Object.keys(this.monthValues).filter(m => m.includes('2025'))
+          
+          for (const month of filteredMonths) {
+            const selected = month === this.selectedMonth ? 'selected' : ''
+            optionsHtml += `<option value="${month}" ${selected}>${month}</option>`
+          }
+
+          select.innerHTML = optionsHtml
+          select.value = this.selectedMonth
 
           select.addEventListener('change', e => {
             this.selectedMonth = e.target.value
@@ -69,7 +102,7 @@ export default {
           })
 
           return container
-        },
+        }
       })
 
       new MonthControl({ position: 'topright' }).addTo(this.map)
@@ -167,7 +200,7 @@ export default {
                   parseFloat(this.monthValues[this.selectedMonth]) || 0
                 const popupContent = `
                   <b>${feature.properties.name || 'Kabupaten Sleman'}</b><br>
-                  Bulan: <b>${this.selectedMonth} 2025</b><br>
+                  Bulan: <b>${this.selectedMonth}</b><br>
                   Angka Insiden: <b>${value}</b><br>
                   Keterangan: <b>${value < 3 ? 'Aman' : value < 10 ? 'Waspada' : 'Awas'}</b>
                 `

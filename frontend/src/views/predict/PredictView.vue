@@ -31,6 +31,14 @@
       Prediksi Sekarang
     </button>
 
+    <button
+      v-if="predictions.length > 0"
+      @click="confirmSave"
+      class="bg-green-600 text-white font-semibold px-4 py-2 rounded hover:bg-green-500 mt-4"
+    >
+      Simpan ke Database
+    </button>
+
     <!-- Hasil Prediksi -->
     <div v-if="predictions.length > 0" class="mt-8 overflow-x-auto">
       <h3 class="text-xl font-semibold mb-2">Hasil Prediksi</h3>
@@ -113,8 +121,35 @@ export default {
         console.error('Gagal memproses file:', error)
         alert('Terjadi kesalahan saat memproses file.')
       }
-    }
+    },
 
+    formatDateToYMD(dateStr) {
+      const date = new Date(dateStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    },
+
+    async confirmSave() {
+      try {
+        const formattedData = this.predictions.map(p => ({
+          ...p,
+          date: this.formatDateToYMD(p.date),
+        }))
+
+        await axios.post(
+          `http://localhost:5000/save_prediction?model_type=${this.modelType}`,
+          formattedData,
+          { headers: { 'Content-Type': 'application/json' } }
+        )
+
+        alert('Hasil prediksi berhasil disimpan ke database!')
+      } catch (err) {
+        console.error('Gagal menyimpan:', err)
+        alert('Gagal menyimpan hasil prediksi.')
+      }
+    }
   },
   components: {},
 }
