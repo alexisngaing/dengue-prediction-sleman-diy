@@ -12,7 +12,6 @@ export default {
   name: 'PrediksiAngkaInsidenSlemanAll',
   data() {
     return {
-      selectedMonth: 'Januari 2025', // Set Agustus as default
       map: null,
       centerMarker: null,
       monthValues: {},
@@ -29,7 +28,7 @@ export default {
   methods: {
     async fetchPrediction() {
       try {
-        const response = await fetch('http://localhost:5000/all-predictions')
+        const response = await fetch('http://localhost:5000/predictions/sleman')
         const data = await response.json()
 
         this.allPredictions = data
@@ -40,8 +39,9 @@ export default {
         })
 
         // Pilih bulan terbaru
-        const latest = data[data.length - 1]
-        this.selectedMonth = this.formatMonthToIndonesian(latest.date)
+        // const latest = data[data.length - 1]
+        // this.selectedMonth = this.formatMonthToIndonesian(latest.date)
+        this.selectedMonth = 'Agustus 2025' 
 
       } catch (err) {
         console.log('monthValues:', this.monthValues)
@@ -68,7 +68,7 @@ export default {
       this.createDropdownControl()
 
       this.centerMarker = L.marker([-7.6896, 110.3831], {
-        icon: this.createNumberIcon(this.monthValues.Agustus), // Set initial value for Agustus
+        icon: this.createNumberIcon(this.monthValues[this.selectedMonth]), // Set initial value for Agustus
         zIndexOffset: 1000,
       }).addTo(this.map)
 
@@ -99,6 +99,7 @@ export default {
             this.selectedMonth = e.target.value
             this.updateCenterNumber()
             this.updateFillColor()
+            this.updatePopupContent()
           })
 
           return container
@@ -180,6 +181,27 @@ export default {
       const g = parseInt(color.substr(3, 2), 16) * factor
       const b = parseInt(color.substr(5, 2), 16) * factor
       return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`
+    },
+
+    updatePopupContent() {
+      if (!this.geoJsonLayer) return
+
+      this.geoJsonLayer.eachLayer(layer => {
+        const feature = layer.feature
+        if (feature?.properties) {
+          const area = feature.properties.name || 'Kabupaten Sleman'
+          const month = this.selectedMonth
+          const value = parseFloat(this.monthValues[month]) || 0
+
+          const popupContent = `
+            <b>${area}</b><br>
+            Bulan: <b>${month}</b><br>
+            Angka Insiden: <b>${value}</b><br>
+            Keterangan: <b>${value < 3 ? 'Aman' : value < 10 ? 'Waspada' : 'Awas'}</b>
+          `
+          layer.bindPopup(popupContent)
+        }
+      })
     },
 
     loadGeoJSON() {

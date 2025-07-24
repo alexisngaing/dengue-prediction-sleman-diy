@@ -14,7 +14,7 @@
       mungkin terjadi. Semakin tinggi angka insiden, semakin tinggi pula risiko
       terjadinya wabah DBD di wilayah tersebut. Peta prediksi risiko DBD
       berdasarkan iklim menunjukkan perkiraan risiko DBD berdasarkan kondisi
-      iklim (curah hujan RR, kelembapan RH, suhu rata-rata Tavg). Semakin tinggi
+      iklim (curah hujan RR, kelembapan RH, suhu T). Semakin tinggi
       risiko, semakin besar kemungkinan kondisi iklim mendukung pertumbuhan
       nyamuk Aedes aegypti.
     </p>
@@ -38,13 +38,13 @@
     </div>
     <div class="border border-gray-300 rounded-lg p-6 mb-10">
       <h2 class="text-lg font-bold">Prediksi Angka Insiden</h2>
-      <p class="text-sm text-gray-600 pb-4">Update: 30 April 2025</p>
+      <p class="text-sm text-gray-600 pb-4">Update: 24 Juli 2025</p>
       <div class="flex justify-center space-x-4">
         <div class="text-center">
           <h3 class="pb-2 font-semibold">
             Prediksi Angka Insiden DBD Bulanan Per Kapanewon
           </h3>
-          <p class="text-sm text-gray-600 pb-4">(Per 10.000 Penduduk)</p>
+          <p class="text-sm text-gray-600 pb-4">(Per 100.000 Penduduk)</p>
           <PrediksiAngkaInsiden />
         </div>
         <div class="">

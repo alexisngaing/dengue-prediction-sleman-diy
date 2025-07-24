@@ -12,76 +12,62 @@ export default {
   name: 'PrediksiAngkaInsiden',
   data() {
     return {
-      selectedMonth: 'Agustus',
+      // selectedMonth: 'Januari 2025',
       map: null,
       subdistrictLayers: {}, // Stores subdistrict polygon layers
       valueMarkers: {}, // Stores value markers for each subdistrict
-      monthValues: {
-        Agustus: {
-          Gamping: 5.5,
-          Godean: 8.2,
-          Moyudan: 5.7,
-          Minggir: 2.3,
-          Seyegan: 3.1,
-          Mlati: 4.5,
-          Depok: 6.0,
-          Berbah: 2.5,
-          Prambanan: 1.0,
-          Kalasan: 3.0,
-          Ngemplak: 4.0,
-          Ngaglik: 2.0,
-          Sleman: 3.5,
-          Tempel: 5.0,
-          Turi: 2.0,
-          Pakem: 1.5,
-          Cangkringan: 3.0,
-        },
-        September: {
-          Gamping: 4.0,
-          Godean: 6.8,
-          Moyudan: 4.1,
-          Minggir: 1.9,
-          Seyegan: 2.5,
-          Mlati: 3.8,
-          Depok: 5.2,
-          Berbah: 1.8,
-          Prambanan: 6.5,
-          Kalasan: 2.0,
-          Ngemplak: 3.5,
-          Ngaglik: 1.5,
-          Sleman: 2.8,
-          Tempel: 4.0,
-          Turi: 1.0,
-          Pakem: 2.0,
-          Cangkringan: 1.5,
-        },
-        Oktober: {
-          Gamping: 2.3,
-          Godean: 7.5,
-          Moyudan: 10.2,
-          Minggir: 3.8,
-          Seyegan: 1.5,
-          Mlati: 2.0,
-          Depok: 4.0,
-          Berbah: 4.5,
-          Prambanan: 2.0,
-          Kalasan: 5.0,
-          Ngemplak: 6.0,
-          Ngaglik: 3.0,
-          Sleman: 1.0,
-          Tempel: 2.5,
-          Turi: 3.5,
-          Pakem: 4.0,
-          Cangkringan: 5.5,
-        },
-      },
+      monthValues: {},
     }
   },
   mounted() {
-    this.initMap()
-    this.loadGeoJSON()
+    this.fetchPrediction().then(() => {
+      this.initMap()
+      this.loadGeoJSON()
+  })
   },
   methods: {
+    async fetchPrediction() {
+      try {
+        const response = await fetch('http://localhost:5000/predictions/kapanewon')
+        const data = await response.json()
+
+        this.allPredictions = data
+        this.monthValues = {}
+
+        data.forEach(item => {
+          const monthLabel = this.formatMonthToIndonesian(item.date)
+
+          if (
+            item.sub_district &&
+            typeof item.sub_district === 'string' &&
+            monthLabel &&
+            item.incidence_rate != null
+          ) {
+            const key = `${item.sub_district.toLowerCase()}_${monthLabel}`
+            this.monthValues[key] = parseFloat(item.incidence_rate).toFixed(2)
+          } else {
+            console.warn('Data prediksi tidak lengkap atau rusak:', item)
+          }
+        })
+
+        // Default
+        this.selectedMonth = 'Agustus 2025'
+
+      } catch (err) {
+        console.log('monthValues:', this.monthValues)
+        console.error('Gagal mengambil prediksi:', err)
+      }
+    },
+
+    formatMonthToIndonesian(dateStr) {
+      const bulanIndo = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ]
+      const date = new Date(dateStr)
+      return `${bulanIndo[date.getMonth()]} ${date.getFullYear()}`
+    },
+
     initMap() {
       this.map = L.map('map1').setView([-7.6896, 110.3831], 10.5)
 
@@ -100,22 +86,29 @@ export default {
           L.DomEvent.disableClickPropagation(container)
 
           const select = L.DomUtil.create('select', 'month-select', container)
-          select.innerHTML = `
-            <option value="">Pilih Bulan</option>
-            <option value="Agustus" selected>Agustus 2025</option>
-            <option value="September">September 2025</option>
-            <option value="Oktober">Oktober 2025</option>
-          `
+
+          let optionsHtml = `<option value="">Pilih Bulan</option>`
+          const filteredMonths = [...new Set(
+            Object.keys(this.monthValues)
+              .map(key => key.split('_')[1])
+              .filter(m => m.includes('2025'))
+          )]
+
+          for (const month of filteredMonths) {
+            const selected = month === this.selectedMonth ? 'selected' : ''
+            optionsHtml += `<option value="${month}" ${selected}>${month}</option>`
+          }
+
+          select.innerHTML = optionsHtml
+          select.value = this.selectedMonth
 
           select.addEventListener('change', e => {
             this.selectedMonth = e.target.value
             this.updateSubdistrictValues()
           })
 
-          select.value = 'Agustus' // Set default value
-
           return container
-        },
+        }
       })
 
       new MonthControl({ position: 'topright' }).addTo(this.map)
@@ -172,9 +165,11 @@ export default {
       if (!this.selectedMonth) return
 
       Object.keys(this.subdistrictLayers).forEach(name => {
-        const value = this.monthValues[this.selectedMonth]?.[name] || 0
+        const key = `${name.toLowerCase()}_${this.selectedMonth}`
+        const value = parseFloat(this.monthValues[key]) || 0
 
-        // Update polygon color
+        console.log('Updating:', key, 'Value:', value)
+
         const color = this.getColorForValue(value)
         this.subdistrictLayers[name].setStyle({
           fillColor: color,
@@ -182,7 +177,6 @@ export default {
           fillOpacity: 0.7,
         })
 
-        // Update or create value marker
         if (this.valueMarkers[name]) {
           this.valueMarkers[name]
             .setIcon(this.createValueIcon(value))
@@ -197,10 +191,9 @@ export default {
           ).addTo(this.map)
         }
 
-        // Update popup content
         const popupContent = `
           <b>${name}</b><br>
-          Bulan: <b>${this.selectedMonth} 2025</b><br>
+          Bulan: <b>${this.selectedMonth}</b><br>
           Angka Insiden: <b>${value}</b><br>
           Keterangan: <b>${value < 3 ? 'Aman' : value < 10 ? 'Waspada' : 'Awas'}</b>
         `
@@ -279,9 +272,10 @@ export default {
                 }
               },
               mouseout: e => {
-                const currentValue =
-                  this.monthValues[this.selectedMonth]?.[subdistrict.name] || 0
-                const color = this.getColorForValue(currentValue)
+                const key = `${subdistrict.name.toLowerCase()}_${this.selectedMonth}`
+                const value = parseFloat(this.monthValues[key]) || 0
+                const color = this.getColorForValue(value)
+
                 e.target.setStyle({
                   color: this.darkenColor(color),
                   weight: 2,

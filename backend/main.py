@@ -7,6 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 from database import db
 from models import Prediction
 from datetime import datetime
+from sqlalchemy import and_
 import os
 
 app = Flask(__name__)
@@ -93,7 +94,24 @@ def save_prediction():
     data = request.json  # frontend kirim array of prediksi
     model_type = request.args.get('model_type', 'sleman')
 
+    inserted_count = 0
+    skipped_count = 0
+
     for row in data:
+        date_obj = datetime.strptime(row['date'], '%Y-%m-%d').date()
+
+        existing = Prediction.query.filter(
+            and_(
+                Prediction.date == date_obj,
+                Prediction.model_type == model_type,
+                Prediction.sub_district == row.get('sub_district', None)
+            )
+        ).first()
+
+        if existing:
+            skipped_count += 1
+            continue
+
         # Ambil populasi sesuai model_type
         if model_type == 'sleman':
             population = POPULATION_SLEMAN
@@ -101,12 +119,12 @@ def save_prediction():
         else:
             sub_district = row.get('sub_district')
             population = POPULATION_KAPANEWON.get(sub_district, 1)  # Default 1 untuk hindari zero division
-            multiplier = 10_000
+            multiplier = 100_000
 
         incidence = (row['predicted_cases'] / population) * multiplier
 
         pred = Prediction(
-            date=datetime.strptime(row['date'], '%Y-%m-%d').date(),
+            date=date_obj,
             temperature_min_celsius=row['temperature_min_celsius'],
             humidity_avg_percentage=row['humidity_avg_percentage'],
             precipitation_mm=row['precipitation_mm'],
@@ -116,15 +134,44 @@ def save_prediction():
             model_type=model_type
         )
         db.session.add(pred)
+        inserted_count += 1
     db.session.commit()
     return jsonify({'message': 'Hasil prediksi berhasil disimpan.'}), 201
 
-@app.route('/all-predictions', methods=['GET'])
-def get_all_predictions():
-    predictions = Prediction.query.order_by(Prediction.date.asc()).all()
+# @app.route('/all-predictions', methods=['GET'])
+# def get_all_predictions():
+#     predictions = Prediction.query.order_by(Prediction.date.asc()).all()
+#     result = [
+#         {
+#             'date': p.date,
+#             'sub_district': p.sub_district,
+#             'predicted_cases': p.predicted_cases,
+#             'incidence_rate': p.incidence_rate,
+#         }
+#         for p in predictions
+#     ]
+#     return jsonify(result)
+
+@app.route('/predictions/sleman', methods=['GET'])
+def get_sleman_predictions():
+    predictions = Prediction.query.filter_by(sub_district=None).order_by(Prediction.date.asc()).all()
     result = [
         {
             'date': p.date,
+            'predicted_cases': p.predicted_cases,
+            'incidence_rate': p.incidence_rate,
+        }
+        for p in predictions
+    ]
+    return jsonify(result)
+
+@app.route('/predictions/kapanewon', methods=['GET'])
+def get_kapanewon_predictions():
+    predictions = Prediction.query.filter(Prediction.sub_district != None).order_by(Prediction.date.asc()).all()
+    result = [
+        {
+            'date': p.date,
+            'sub_district': p.sub_district,
             'predicted_cases': p.predicted_cases,
             'incidence_rate': p.incidence_rate,
         }
