@@ -93,15 +93,15 @@
 
 <script>
 import PrediksiAngkaInsiden from '@/views/map/PrediksiAngkaInsidenView.vue'
-import PrediksiIklim from '@/views/map/PrediksiIklimView.vue'
+// import PrediksiIklim from '@/views/map/PrediksiIklimView.vue'
 import PrediksiAngkaInsidenSlemanAll from '@/views/map/PrediksiAngkaInsidenSlemanAllView.vue'
-import PrediksiIklimSlemanAll from '@/views/map/PrediksiIklimSlemanAllView.vue'
+// import PrediksiIklimSlemanAll from '@/views/map/PrediksiIklimSlemanAllView.vue'
 export default {
   components: {
     PrediksiAngkaInsiden,
-    PrediksiIklim,
+    // PrediksiIklim,
     PrediksiAngkaInsidenSlemanAll,
-    PrediksiIklimSlemanAll,
+    // PrediksiIklimSlemanAll,
   },
   name: 'DashboardView',
 }

@@ -17,7 +17,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite3'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
-# Buat database dan tabel jika belum ada
 with app.app_context():
     db.create_all()
 
@@ -91,7 +90,7 @@ def predict_kapanewon():
 
 @app.route('/save_prediction', methods=['POST'])
 def save_prediction():
-    data = request.json  # frontend kirim array of prediksi
+    data = request.json 
     model_type = request.args.get('model_type', 'sleman')
 
     inserted_count = 0
@@ -112,13 +111,12 @@ def save_prediction():
             skipped_count += 1
             continue
 
-        # Ambil populasi sesuai model_type
         if model_type == 'sleman':
             population = POPULATION_SLEMAN
             multiplier = 100_000
         else:
             sub_district = row.get('sub_district')
-            population = POPULATION_KAPANEWON.get(sub_district, 1)  # Default 1 untuk hindari zero division
+            population = POPULATION_KAPANEWON.get(sub_district, 1)
             multiplier = 100_000
 
         incidence = (row['predicted_cases'] / population) * multiplier

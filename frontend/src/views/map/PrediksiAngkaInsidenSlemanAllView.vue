@@ -22,7 +22,7 @@ export default {
     this.fetchPrediction().then(() => {
       this.initMap()
       this.loadGeoJSON()
-      // this.createDropdownControl() // Pindahkan ke sini
+      // this.createDropdownControl()
   })
   },
   methods: {
@@ -38,7 +38,6 @@ export default {
           this.monthValues[month] = parseFloat(item.incidence_rate).toFixed(2)
         })
 
-        // Pilih bulan terbaru
         // const latest = data[data.length - 1]
         // this.selectedMonth = this.formatMonthToIndonesian(latest.date)
         this.selectedMonth = 'Agustus 2025' 
@@ -252,7 +251,6 @@ export default {
             },
           }).addTo(this.map)
 
-          // Update the fill color for Agustus after loading
           this.updateFillColor()
         })
         .catch(err => console.error('Error loading GeoJSON:', err))

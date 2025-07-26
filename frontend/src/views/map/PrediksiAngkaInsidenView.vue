@@ -14,8 +14,8 @@ export default {
     return {
       // selectedMonth: 'Januari 2025',
       map: null,
-      subdistrictLayers: {}, // Stores subdistrict polygon layers
-      valueMarkers: {}, // Stores value markers for each subdistrict
+      subdistrictLayers: {},
+      valueMarkers: {},
       monthValues: {},
     }
   },
@@ -157,7 +157,7 @@ export default {
         ">${value}</div>`,
         className: '',
         iconSize: [40, 40],
-        iconAnchor: [20, 20], // Center the icon
+        iconAnchor: [20, 20],
       })
     },
 
@@ -202,7 +202,6 @@ export default {
     },
 
     getSubdistrictCenter(layer) {
-      // Get the center point of the subdistrict polygon
       const bounds = layer.getBounds()
       return bounds.getCenter()
     },
@@ -224,7 +223,6 @@ export default {
     },
 
     loadGeoJSON() {
-      // Subdistricts data - update URLs to match your GeoJSON files
       const subdistricts = [
         { name: 'Gamping', url: '/gamping.geojson' },
         { name: 'Godean', url: '/godean.geojson' },
@@ -245,7 +243,6 @@ export default {
         { name: 'Cangkringan', url: '/cangkringan.geojson' },
       ]
 
-      // Load each subdistrict GeoJSON
       const promises = subdistricts.map(subdistrict => {
         return fetch(subdistrict.url)
           .then(response => response.json())
@@ -260,10 +257,8 @@ export default {
               },
             }).addTo(this.map)
 
-            // Store layer reference
             this.subdistrictLayers[subdistrict.name] = layer
 
-            // Add hover effects
             layer.on({
               mouseover: e => {
                 e.target.setStyle({ weight: 3 })
@@ -289,7 +284,6 @@ export default {
       })
 
       Promise.all(promises).then(() => {
-        // After all layers are loaded, update values for the default month
         this.updateSubdistrictValues()
       })
     },

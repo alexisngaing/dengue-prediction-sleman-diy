@@ -4,7 +4,6 @@
       Prediksi Demam Berdarah Dengue (DBD) Wilayah Kabupaten Sleman
     </h1>
 
-    <!-- Dropdown untuk jenis prediksi -->
     <div class="mb-4">
       <label for="modelType" class="block mb-1 font-semibold"
         >Jenis Prediksi:</label
@@ -39,13 +38,11 @@
       Simpan ke Database
     </button>
 
-    <!-- Hasil Prediksi -->
     <div v-if="predictions.length > 0" class="mt-8 overflow-x-auto">
       <h3 class="text-xl font-semibold mb-2">Hasil Prediksi</h3>
       <table class="min-w-full border-collapse border border-gray-300">
         <thead class="bg-gray-200">
           <tr>
-            <!-- Tampilkan kolom sub_district jika model kecamatan -->
             <th v-if="modelType === 'kapanewon'" class="border px-4 py-2">
               Kapanewon
             </th>
@@ -100,7 +97,6 @@ export default {
       const formData = new FormData()
       formData.append('file', this.csvFile)
 
-      // Tentukan endpoint berdasarkan jenis model
       let endpoint = ''
       if (this.modelType === 'sleman') {
         endpoint = 'http://localhost:5000/predict/sleman'

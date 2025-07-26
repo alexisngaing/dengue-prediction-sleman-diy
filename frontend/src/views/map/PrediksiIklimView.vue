@@ -12,10 +12,10 @@ export default {
   name: 'PrediksiIklim',
   data() {
     return {
-      selectedMonth: 'Agustus', // Set Agustus as default
+      selectedMonth: 'Agustus',
       map: null,
-      subdistrictLayers: {}, // Stores subdistrict polygon layers
-      valueMarkers: {}, // Stores value markers for each subdistrict
+      subdistrictLayers: {},
+      valueMarkers: {},
       monthValues: {
         Agustus: {
           Gamping: 90,
@@ -112,7 +112,6 @@ export default {
             this.updateSubdistrictValues()
           })
 
-          // Set the selected value to Agustus
           select.value = 'Agustus'
 
           return container
@@ -179,7 +178,7 @@ export default {
         ">${value}%</div>`,
         className: '',
         iconSize: [40, 40],
-        iconAnchor: [20, 20], // Center the icon
+        iconAnchor: [20, 20],
       })
     },
 
@@ -189,7 +188,6 @@ export default {
       Object.keys(this.subdistrictLayers).forEach(name => {
         const value = this.monthValues[this.selectedMonth]?.[name] || 0
 
-        // Update polygon color
         const color = this.getColorForValue(value)
         this.subdistrictLayers[name].setStyle({
           fillColor: color,
@@ -197,7 +195,6 @@ export default {
           fillOpacity: 0.7,
         })
 
-        // Update or create value marker
         if (this.valueMarkers[name]) {
           this.valueMarkers[name]
             .setIcon(this.createValueIcon(value))
@@ -212,7 +209,6 @@ export default {
           ).addTo(this.map)
         }
 
-        // Update popup content
         const popupContent = `
           <b>${name}</b><br>
           Bulan: <b>${this.selectedMonth} 2025</b><br>
@@ -224,7 +220,6 @@ export default {
     },
 
     getSubdistrictCenter(layer) {
-      // Get the center point of the subdistrict polygon
       const bounds = layer.getBounds()
       return bounds.getCenter()
     },
@@ -260,7 +255,6 @@ export default {
     },
 
     loadGeoJSON() {
-      // Subdistricts data - update URLs to match your GeoJSON files
       const subdistricts = [
         { name: 'Gamping', url: '/gamping.geojson' },
         { name: 'Godean', url: '/godean.geojson' },
@@ -281,7 +275,6 @@ export default {
         { name: 'Cangkringan', url: '/cangkringan.geojson' },
       ]
 
-      // Load each subdistrict GeoJSON
       const promises = subdistricts.map(subdistrict => {
         return fetch(subdistrict.url)
           .then(response => response.json())
@@ -296,10 +289,8 @@ export default {
               },
             }).addTo(this.map)
 
-            // Store layer reference
             this.subdistrictLayers[subdistrict.name] = layer
 
-            // Add hover effects
             layer.on({
               mouseover: e => {
                 e.target.setStyle({ weight: 3 })
@@ -323,7 +314,6 @@ export default {
           )
       })
 
-      // After all GeoJSONs are loaded, update the values for Agustus
       Promise.all(promises).then(() => {
         this.updateSubdistrictValues()
       })

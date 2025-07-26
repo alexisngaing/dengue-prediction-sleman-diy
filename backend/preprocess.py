@@ -6,10 +6,8 @@ def preprocess_sleman(df):
     df['month'] = df['date'].dt.month
     df['season'] = (df['month'] % 12) // 3 + 1
 
-    # Buat salinan dari df untuk reference rolling dan lag
     df_ref = df.copy()
 
-    # Hitung rolling dan lag dari data sebelumnya (dengan nilai case)
     lags = [1, 2, 3]
     for lag in lags:
         df[f'case_lag{lag}'] = df_ref['case'].shift(lag)
@@ -22,7 +20,6 @@ def preprocess_sleman(df):
     df['humidity_avg_percentage_rolling3'] = df_ref['humidity_avg_percentage'].rolling(window=3).mean()
     df['precipitation_mm_rolling3'] = df_ref['precipitation_mm'].rolling(window=3).mean()
 
-    # Drop NaN, tapi jangan drop baris yang hanya NaN di kolom 'case'
     df = df[df['case_lag1'].notna()].reset_index(drop=True)
 
     return df
